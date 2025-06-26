@@ -1,0 +1,9 @@
+output_wav
+訓練フォルダ５つ（a,i,u,e,o) +　テストフォルダ１つ　（test)
+
+new_voice.py
+output_wav内にある訓練フォルダからカーネル計算　－＞　テストフォルダの５つのテストファイルに対して適用
+
+
+pip install pydub
+sudo apt install ffmpeg  
