@@ -4,6 +4,11 @@ output_wav
 new_voice.py
 output_wav内にある訓練フォルダからカーネル計算　－＞　テストフォルダの５つのテストファイルに対して適用
 
+voice_test
+input_m4pフォルダ内にあるtestフォルダ内の５つのm4pを１ｓに調整してwavに変換
+
+record_audio
+input_m4pフォルダ内にあるa,i,u,e,oフォルダ内にそれぞれある５つのm4pを1sに調整してwavに変換
 
 pip install pydub
 sudo apt install ffmpeg  
