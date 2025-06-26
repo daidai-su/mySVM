@@ -10,3 +10,15 @@ num
 
 predict
 →キャンバスに自分で数字を描き推測
+
+
+
+仮想化＋numpyなどのインストール
+python3 -m venv myenv
+source myenv/bin/activate
+pip install numpy matplotlib scikit-learn pillow
+
+predictに必要なボードのライブラリ
+sudo apt update
+sudo apt install python3-tk python3-pip -y
+pip install numpy matplotlib scikit-learn pillow
