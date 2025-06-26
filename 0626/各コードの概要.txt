@@ -12,6 +12,9 @@ predict
 →キャンバスに自分で数字を描き推測
 テストデータはもとにdigitとかいうもとにあるやつ
 
+neo_predict
+→predictではピクセルごとの黒の濃さに対する距離だったけど、今回は濃さに対する勾配を計算（HOG)
+
 
 仮想化＋numpyなどのインストール
 python3 -m venv myenv
