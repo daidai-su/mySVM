@@ -12,3 +12,13 @@ input_m4pフォルダ内にあるa,i,u,e,oフォルダ内にそれぞれある�
 
 pip install pydub
 sudo apt install ffmpeg  
+
+
+
+結果
+ python new_voice.py
+🎤 テスト音声 テストい.wav の予測結果: i
+🎤 テスト音声 テストう.wav の予測結果: u
+🎤 テスト音声 テストあ.wav の予測結果: a
+🎤 テスト音声 テストえ.wav の予測結果: e
+🎤 テスト音声 テストお.wav の予測結果: o
