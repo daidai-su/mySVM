@@ -18,7 +18,8 @@ neo_predict
 
 仮想化＋numpyなどのインストール
 python3 -m venv myenv
-source myenv/bin/activate
+↓ここからでおけ
+source venv/bin/activate
 pip install numpy matplotlib scikit-learn pillow
 
 predictに必要なボードのライブラリ
