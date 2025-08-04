@@ -7,7 +7,7 @@ from sklearn.svm import SVC
 from sklearn.metrics.pairwise import linear_kernel, polynomial_kernel, rbf_kernel, sigmoid_kernel
 
 # データ生成
-X, y = make_moons(n_samples=300, noise=0.2, random_state=42)
+X, y = make_moons(n_samples=300, noise=0, random_state=42)
 
 # 訓練・テスト分割
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
@@ -30,7 +30,7 @@ for k in kernels:
 def weighted_kernel(X, Y):
     w1, w2, w3, w4 = 0.99, 0.005, 0.0025, 0.0025  # 重みは自由に調整可能
     K1 = linear_kernel(X, Y)
-    K2 = polynomial_kernel(X, Y, degree=3)
+    K2 = polynomial_kernel(X, Y, degree=10)
     K3 = rbf_kernel(X, Y, gamma=1.0)
     K4 = sigmoid_kernel(X, Y)
     return w1*K1 + w2*K2 + w3*K3 + w4*K4
