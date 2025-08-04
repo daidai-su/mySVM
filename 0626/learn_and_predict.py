@@ -16,7 +16,7 @@ DATA_FILE = 'handwritten_data.npz'
 
 # ★★★ ここで使用するカーネルを選択 ★★★
 # 'rbf', 'linear', 'poly', 'mkl_rbf' から選んでください
-SELECTED_KERNEL = 'poly'
+SELECTED_KERNEL = 'linear'
 # --------------------------------------------------------------------------
 
 # --- カーネルごとの設定を定義 ---
@@ -65,13 +65,13 @@ class App:
         tk.Label(master, text="Correct Digit:", font=('Arial', 12)).grid(row=1, column=0, sticky=tk.E)
         self.entry = tk.Entry(master, width=5, font=('Arial', 14))
         self.entry.grid(row=1, column=1, sticky=tk.W)
-        self.save_button = tk.Button(master, text="Save This Image", command=self.save_digit, bg='#4CAF50', fg='white', font=('Arial', 10))
+        self.save_button = tk.Button(master, text="Save", command=self.save_digit, bg='#4CAF50', fg='white', font=('Arial', 10))
         self.save_button.grid(row=1, column=2, padx=5, sticky=tk.W+tk.E)
-        self.predict_button = tk.Button(master, text="Predict", command=self.predict, font=('Arial', 12, 'bold'))
+        self.predict_button = tk.Button(master, text="Predict", command=self.predict, font=('Arial', 12))
         self.predict_button.grid(row=3, column=0, pady=10, sticky=tk.W+tk.E)
         self.clear_button = tk.Button(master, text="Clear", command=self.clear, font=('Arial', 12))
         self.clear_button.grid(row=3, column=1, columnspan=2, pady=10, sticky=tk.W+tk.E)
-        self.train_button = tk.Button(master, text=f"Train with '{SELECTED_KERNEL}' kernel", command=self.train_model, bg='#2196F3', fg='white', font=('Arial', 12, 'bold'))
+        self.train_button = tk.Button(master, text=f"Train with '{SELECTED_KERNEL}' kernel", command=self.train_model, font=('Arial', 12, 'bold'))
         self.train_button.grid(row=4, column=0, columnspan=3, pady=5, sticky=tk.W+tk.E)
         self.label = tk.Label(master, text="Starting up...", font=('Arial', 14))
         self.label.grid(row=2, column=0, columnspan=3, pady=10)
@@ -123,7 +123,7 @@ class App:
         self.canvas.delete("all")
         self.image = Image.new("L", (CANVAS_SIZE, CANVAS_SIZE), color=255)
         self.draw = ImageDraw.Draw(self.image)
-        self.label.config(text="1. Draw -> 2. Enter Label -> 3. Save")
+        #self.label.config(text="1. Draw -> 2. Enter Label -> 3. Save")
         self.entry.delete(0, tk.END)
 
     def _preprocess_image(self):
