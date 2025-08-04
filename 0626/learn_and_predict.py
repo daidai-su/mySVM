@@ -6,26 +6,60 @@ from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import GridSearchCV
-import os # ファイルの存在確認のためにosライブラリをインポート
+from sklearn.metrics.pairwise import rbf_kernel
+import os
 
-# --- 定数 ---
+# --- 定数と設定 -----------------------------------------------------------
 CANVAS_SIZE = 200
 PEN_RADIUS = 12
-DATA_FILE = 'handwritten_data.npz' # 保存するファイル名
+DATA_FILE = 'handwritten_data.npz'
+
+# ★★★ ここで使用するカーネルを選択 ★★★
+# 'rbf', 'linear', 'poly', 'mkl_rbf' から選んでください
+SELECTED_KERNEL = 'poly'
+# --------------------------------------------------------------------------
+
+# --- カーネルごとの設定を定義 ---
+def multi_scale_rbf_kernel(X1, X2):
+    """MKL(RBF)のためのカスタムカーネル関数"""
+    gammas = np.logspace(-3, 2, 20) # スケール数を調整
+    kernel_sum = np.zeros((X1.shape[0], X2.shape[0]))
+    for gamma in gammas:
+        kernel_sum += rbf_kernel(X1, X2, gamma=gamma)
+    return kernel_sum
+
+# 各カーネルのモデルとチューニング用パラメータを辞書で管理
+KERNEL_CONFIGS = {
+    'rbf': {
+        'model': SVC(kernel='rbf', probability=True),
+        'param_grid': {'svc__C': [10, 100, 500], 'svc__gamma': [0.1, 0.01, 0.001]}
+    },
+    'linear': {
+        'model': SVC(kernel='linear', probability=True),
+        'param_grid': {'svc__C': [0.1, 1, 10, 100]}
+    },
+    'poly': {
+        'model': SVC(kernel='poly', probability=True),
+        'param_grid': {'svc__C': [10, 100], 'svc__degree': [3, 4], 'svc__gamma': ['scale', 'auto']}
+    },
+    'mkl_rbf': {
+        'model': SVC(kernel=multi_scale_rbf_kernel, probability=True),
+        'param_grid': {'svc__C': [10, 100, 500, 1000]}
+    }
+}
 
 # --- GUIアプリ本体 ---
 class App:
     def __init__(self, master):
         self.master = master
-        master.title("Handwritten Digit Classifier (w/ Save & Load)")
+        # ウィンドウタイトルに選択中のカーネル名を表示
+        master.title(f"Digit Classifier - Kernel: {SELECTED_KERNEL.upper()}")
 
-        # --- データ保存用変数 ---
         self.data_X = []
         self.data_y = []
         self.model = None
 
-        # --- UI要素の配置 ---
-        # ... (UIの配置コードは前回と同じなので省略) ...
+        # --- UI要素の配置 (変更なし) ---
         self.canvas = tk.Canvas(master, width=CANVAS_SIZE, height=CANVAS_SIZE, bg='white', relief=tk.RIDGE, bd=2)
         self.canvas.grid(row=0, column=0, columnspan=3, pady=10, padx=10)
         tk.Label(master, text="Correct Digit:", font=('Arial', 12)).grid(row=1, column=0, sticky=tk.E)
@@ -37,31 +71,55 @@ class App:
         self.predict_button.grid(row=3, column=0, pady=10, sticky=tk.W+tk.E)
         self.clear_button = tk.Button(master, text="Clear", command=self.clear, font=('Arial', 12))
         self.clear_button.grid(row=3, column=1, columnspan=2, pady=10, sticky=tk.W+tk.E)
-        self.train_button = tk.Button(master, text="Train on Collected Data", command=self.train_model, bg='#2196F3', fg='white', font=('Arial', 12, 'bold'))
+        self.train_button = tk.Button(master, text=f"Train with '{SELECTED_KERNEL}' kernel", command=self.train_model, bg='#2196F3', fg='white', font=('Arial', 12, 'bold'))
         self.train_button.grid(row=4, column=0, columnspan=3, pady=5, sticky=tk.W+tk.E)
         self.label = tk.Label(master, text="Starting up...", font=('Arial', 14))
         self.label.grid(row=2, column=0, columnspan=3, pady=10)
         
-        # 描画用イメージの初期化
         self.image = Image.new("L", (CANVAS_SIZE, CANVAS_SIZE), color=255)
         self.draw = ImageDraw.Draw(self.image)
         self.canvas.bind("<B1-Motion>", self.paint)
 
-        # ★★★ アプリ起動時にデータを読み込む ★★★
         self.load_data_from_file()
-        
-        # ★★★ ウィンドウを閉じる時にデータを保存する設定 ★★★
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+    def train_model(self):
+        """保存したデータで、選択されたカーネルのSVMモデルを学習する"""
+        if len(self.data_y) < 20:
+            messagebox.showinfo("Info", f"Not enough data ({len(self.data_y)} samples).\nPlease collect at least 20 samples.")
+            return
+
+        # 選択されたカーネルの設定を取得
+        if SELECTED_KERNEL not in KERNEL_CONFIGS:
+            messagebox.showerror("Error", f"Invalid kernel name: '{SELECTED_KERNEL}'")
+            return
+            
+        config = KERNEL_CONFIGS[SELECTED_KERNEL]
+        
+        X_train = np.array(self.data_X)
+        y_train = np.array(self.data_y)
+        
+        self.label.config(text=f"Training with '{SELECTED_KERNEL}'... (Please wait)")
+        self.master.update()
+
+        # パイプラインとGridSearchCVを、選択されたカーネルの設定で構築
+        pipeline = make_pipeline(StandardScaler(), config['model'])
+        grid_search = GridSearchCV(pipeline, config['param_grid'], cv=3, n_jobs=-1) # n_jobs=-1で高速化
+        grid_search.fit(X_train, y_train)
+        
+        self.model = grid_search.best_estimator_
+        
+        messagebox.showinfo("Success", f"Custom '{SELECTED_KERNEL}' model has been trained!")
+        self.label.config(text="Training complete! Ready to predict.")
+        
+    # --- 他の関数 (paint, clear, _preprocess_image, save_digit, predict, load_data_from_file, on_closing) は変更なし ---
     def paint(self, event):
-        # ... (前回と同じ) ...
         x1, y1 = (event.x - PEN_RADIUS), (event.y - PEN_RADIUS)
         x2, y2 = (event.x + PEN_RADIUS), (event.y + PEN_RADIUS)
         self.canvas.create_oval(x1, y1, x2, y2, fill='black', outline='black')
         self.draw.ellipse([x1, y1, x2, y2], fill=0)
 
     def clear(self):
-        # ... (前回と同じ) ...
         self.canvas.delete("all")
         self.image = Image.new("L", (CANVAS_SIZE, CANVAS_SIZE), color=255)
         self.draw = ImageDraw.Draw(self.image)
@@ -69,7 +127,6 @@ class App:
         self.entry.delete(0, tk.END)
 
     def _preprocess_image(self):
-        # ... (前回と同じ) ...
         bbox = self.image.getbbox()
         if bbox is None: return None
         img_cropped = self.image.crop(bbox)
@@ -87,7 +144,6 @@ class App:
         return data.reshape(1, -1)
 
     def save_digit(self):
-        # ... (前回と同じ) ...
         label_text = self.entry.get()
         if not label_text.isdigit():
             messagebox.showerror("Error", "Please enter a valid digit (0-9).")
@@ -102,25 +158,7 @@ class App:
         self.label.config(text=f"Saved '{label}'. Total samples: {len(self.data_y)}")
         self.clear()
 
-    def train_model(self):
-        # ... (前回と同じ) ...
-        if len(self.data_y) < 20:
-            messagebox.showinfo("Info", f"Not enough data ({len(self.data_y)} samples).\nPlease collect at least 20 samples.")
-            return
-        X_train = np.array(self.data_X)
-        y_train = np.array(self.data_y)
-        self.label.config(text="Training... (Please wait)")
-        self.master.update()
-        param_grid = {'svc__C': [10, 100, 1000], 'svc__gamma': [0.1, 0.01, 0.001]}
-        pipeline = make_pipeline(StandardScaler(), SVC(kernel='rbf'))
-        grid_search = GridSearchCV(pipeline, param_grid, cv=3)
-        grid_search.fit(X_train, y_train)
-        self.model = grid_search.best_estimator_
-        messagebox.showinfo("Success", "Your custom model has been trained!")
-        self.label.config(text="Training complete! Ready to predict.")
-
     def predict(self):
-        # ... (前回と同じ) ...
         if self.model is None:
             messagebox.showerror("Error", "The model has not been trained yet.\nPlease collect data and press 'Train'.")
             return
@@ -129,10 +167,7 @@ class App:
         pred = self.model.predict(data)[0]
         self.label.config(text=f"Prediction: {pred}", font=('Arial', 24, 'bold'))
         
-    # ★★★ 以下、新しく追加・修正した関数 ★★★
-    
     def load_data_from_file(self):
-        """起動時にファイルからデータを読み込む"""
         if os.path.exists(DATA_FILE):
             try:
                 with np.load(DATA_FILE) as data:
@@ -145,20 +180,16 @@ class App:
             self.label.config(text="No data file found. Please create new data.")
 
     def on_closing(self):
-        """ウィンドウを閉じる時にデータをファイルに保存する"""
         if len(self.data_y) > 0:
             try:
-                X_arr = np.array(self.data_X)
-                y_arr = np.array(self.data_y)
-                # 圧縮して保存
-                np.savez_compressed(DATA_FILE, X=X_arr, y=y_arr)
-                print(f"Successfully saved {len(y_arr)} samples to {DATA_FILE}")
+                np.savez_compressed(DATA_FILE, X=np.array(self.data_X), y=np.array(self.data_y))
+                print(f"Successfully saved {len(self.data_y)} samples to {DATA_FILE}")
             except Exception as e:
                 print(f"Error saving data: {e}")
-        
         self.master.destroy()
 
 # --- アプリの起動 ---
-root = tk.Tk()
-app = App(root)
-root.mainloop()
+if __name__ == '__main__':
+    root = tk.Tk()
+    app = App(root)
+    root.mainloop()
